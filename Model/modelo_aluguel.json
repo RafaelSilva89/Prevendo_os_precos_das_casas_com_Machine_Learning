@@ -1,0 +1,45 @@
+{
+  "data_treino": "2026-10-24 16:26",
+  "modelo": "HistGradientBoosting ajustado (Pipeline: one-hot da cidade + HistGradientBoosting)",
+  "arquivo": "modelo_aluguel.pkl",
+  "treinado_com": "8.257 anúncios (treino + validação) de 5 cidades",
+  "colunas_de_entrada": [
+    "cidade",
+    "area",
+    "quartos",
+    "banheiros",
+    "vagas",
+    "andar",
+    "aceita_animal",
+    "mobiliado",
+    "condominio",
+    "iptu",
+    "eh_casa",
+    "iptu_zero"
+  ],
+  "alvo": "aluguel mensal (R$), sem condomínio, IPTU e seguro",
+  "faixa_de_erro_80": {
+    "multiplicador_inferior": 0.563,
+    "multiplicador_superior": 1.573
+  },
+  "metricas_no_teste": {
+    "MAE (R$)": 1249.0025,
+    "MAPE": 0.3669,
+    "RMSE (R$)": 1970.9642,
+    "R²": 0.6534,
+    "MPE": 0.1822
+  },
+  "hiperparametros": {
+    "min_samples_leaf": 40,
+    "max_leaf_nodes": 15,
+    "max_iter": 400,
+    "learning_rate": 0.02,
+    "l2_regularization": 10
+  },
+  "avisos": [
+    "Base de anúncios de 2020: os valores não incluem a inflação dos aluguéis desde então.",
+    "Vale só para as 5 cidades da base e para imóveis dentro dos limites das regras de qualidade (src/config.py).",
+    "Não use seguro-incêndio nem total como entrada: são calculados a partir do aluguel (vazamento).",
+    "O preço é o ANUNCIADO, não o valor fechado no contrato."
+  ]
+}
