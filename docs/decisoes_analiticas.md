@@ -20,6 +20,9 @@ Os números vêm das saídas do notebook [`Notebooks/Prevendo os preços das cas
 | [DA-10](#da-10--histgradientboosting-ajustado) | HistGradientBoosting ajustado |
 | [DA-11](#da-11--faixa-de-erro-relativa) | Faixa de erro relativa |
 | [DA-12](#da-12--teto-de-r-15-mil-mantido-e-avisado) | Teto de R$ 15 mil: mantido e avisado |
+| [DA-13](#da-13--três-métodos-de-busca-comparados-random-search-mantido) | Três métodos de busca comparados; Random Search mantido |
+| [DA-14](#da-14--shap-com-treeexplainer-para-explicar-cada-previsão) | SHAP com TreeExplainer para explicar cada previsão |
+| [DA-15](#da-15--monitoramento-por-psi-k-s-e-sla-sem-backtest-no-tempo) | Monitoramento por PSI, K-S e SLA; sem backtest no tempo |
 
 ---
 
@@ -118,3 +121,27 @@ Os números vêm das saídas do notebook [`Notebooks/Prevendo os preços das cas
 - **Alternativas consideradas:** remover os anúncios de R$ 15.000 (apagaria o alto padrão e criaria outro viés); tratar como valor censurado, com modelo de sobrevivência (próximo passo).
 - **Consequência:** para imóveis de alto padrão, o modelo tende a subestimar o preço; no gráfico previsto × real, esses anúncios formam a linha horizontal do topo.
 - **Onde está:** item 2.7 da Fase 02; limites no fim do notebook; `app.py`.
+
+## DA-13 — Três métodos de busca comparados; Random Search mantido
+
+- **Contexto:** o ajuste fino usava só o Random Search. Para saber se outro método acharia hiperparâmetros melhores, comparamos Grid Search (3 hiperparâmetros, 27 combinações), Random Search (5 hiperparâmetros, 30 combinações) e otimização Bayesiana com Optuna (TPE, 30 tentativas), nas mesmas 5 partes da validação cruzada do treino e com o MAE. Resultado: R$ 1.322 ± 42, R$ 1.318 ± 39 e R$ 1.316 ± 35, contra R$ 1.337 do modelo padrão.
+- **Decisão:** regra definida antes da busca: o método novo só substitui o Random Search se ganhar por mais que o desvio entre as partes. A Bayesiana ganhou por R$ 2 (desvio de R$ 35): o **Random Search continua**.
+- **Alternativas consideradas:** trocar para a Bayesiana (menor MAE, mas diferença de ruído, e trocaria o modelo do app sem ganho real); a grade completa com os 5 hiperparâmetros (2.160 modelos, ~131 min, para o mesmo resultado).
+- **Consequência:** modelo, ficha e app iguais aos da versão anterior; a ficha registra o método de ajuste. O ajuste melhora o MAE em só 1,6% sobre o padrão: o limite é a falta do bairro, não os hiperparâmetros.
+- **Onde está:** itens 7.1 a 7.4 da Fase 03; `src/otimizacao.py`; `Model/modelo_aluguel.json`.
+
+## DA-14 — SHAP com TreeExplainer para explicar cada previsão
+
+- **Contexto:** a importância por permutação diz quais variáveis o modelo usa, mas não a direção do efeito nem o porquê de uma previsão específica.
+- **Decisão:** SHAP com o **TreeExplainer** (exato e rápido para árvores), numa amostra de 500 imóveis do teste, na tabela que o modelo recebe (cidade em colunas 0/1). Mostramos a importância global, a direção do efeito, a dependência da área e o waterfall de um imóvel bem previsto e do pior erro.
+- **Alternativas consideradas:** KernelExplainer (funciona com qualquer modelo, mas é aproximado e muito mais lento); LIME (heurístico e instável entre execuções).
+- **Consequência:** a soma das contribuições bate com a previsão (diferença de R$ 0,00); as 6 variáveis do topo são as mesmas da permutação; a área vale mais em imóveis de IPTU alto; o pior erro é um imóvel grande com IPTU baixo, lido como "padrão simples".
+- **Onde está:** item 3 da Fase 04.
+
+## DA-15 — Monitoramento por PSI, K-S e SLA; sem backtest no tempo
+
+- **Contexto:** depois de implantado, o modelo envelhece (inflação, mudança do mercado). Os anúncios não têm data, então não há como fazer um backtest no tempo (walk-forward).
+- **Decisão:** monitorar as entradas com **PSI** e **K-S** (referência: treino + validação) e o erro com um **SLA** de MAE de até R$ 1.374 (MAE do teste + 10%), conferido por lote.
+- **Alternativas consideradas:** walk-forward (exige datas); só o PSI (numa simulação de inflação de 30% no condomínio e no IPTU, ficou em 0,047, "estável", embora o K-S tenha detectado a mudança e o aluguel previsto tenha subido 8%).
+- **Consequência:** treino x teste estável (PSI ≤ 0,005); proposta de retreino se o PSI passar de 0,25, se o MAE ficar acima do SLA em dois lotes seguidos ou depois de corrigir os valores pela inflação.
+- **Onde está:** item 3 da Fase 05; `src/monitoramento.py`.

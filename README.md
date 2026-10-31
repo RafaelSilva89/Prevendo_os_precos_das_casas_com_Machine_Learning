@@ -8,7 +8,7 @@
 
 [![Testes](https://github.com/RafaelSilva89/Prevendo_os_precos_das_casas_com_Machine_Learning/actions/workflows/testes.yml/badge.svg)](https://github.com/RafaelSilva89/Prevendo_os_precos_das_casas_com_Machine_Learning/actions/workflows/testes.yml)
 
-**Python · Pandas · Scikit-learn · HistGradientBoosting · XGBoost · LightGBM · SciPy · Pytest · GitHub Actions · Streamlit · CRISP-DM**
+**Python · Pandas · Scikit-learn · HistGradientBoosting · XGBoost · LightGBM · Optuna · SHAP · SciPy · Pytest · GitHub Actions · Streamlit · CRISP-DM**
 
 | 📊 Destaques | |
 |---|---|
@@ -17,7 +17,8 @@
 | Margem de erro | Em **8 de cada 10** imóveis, o aluguel real fica entre **56% e 157%** do valor sugerido (**81,3%** de acerto no teste) |
 | O que encarece | **Área**, **IPTU e condomínio** (padrão do imóvel), **banheiros**, **mobília** e **cidade**. Mobiliar soma **+44%** ao mesmo imóvel; em Porto Alegre, ele custa **28% menos** que em São Paulo |
 | Qualidade dos dados | A v2 encontrou o que a v1 não viu: um **"modelo da média" que usava as respostas**, **358 duplicatas**, **12 erros de digitação** (condomínio de R$ 1,1 milhão) e um **teto escondido** de R$ 15 mil no aluguel |
-| Entrega | Notebook CRISP-DM, **13 testes automatizados** (GitHub Actions) e **app Streamlit** que sugere o aluguel com a faixa de erro |
+| Ajuste e explicação | **Grid Search, Random Search e otimização Bayesiana (Optuna)** comparados nas mesmas 5 partes; **SHAP** explica cada previsão, em reais; **monitoramento de drift** (PSI e K-S) com SLA |
+| Entrega | Notebook CRISP-DM, **16 testes automatizados** (GitHub Actions) e **app Streamlit** que sugere o aluguel com a faixa de erro |
 
 ---
 
@@ -96,9 +97,11 @@ Prevendo_os_precos_das_casas_com_Machine_Learning/
 │   ├── estatistica.py                  # testes das hipóteses (com tamanho de efeito) e regra do IQR
 │   ├── selecao.py                      # seleção de variáveis (Random Forest + Informação Mútua)
 │   ├── avaliacao.py                    # ml_error, relatório de validação, faixa de erro, tradução do erro e ficha
+│   ├── otimizacao.py                   # comparação Grid Search x Random Search x Bayesiana (Optuna)
+│   ├── monitoramento.py                # data drift: PSI e teste K-S
 │   └── graficos.py                     # gráficos e formatação em português
 ├── tests/
-│   ├── test_funcoes.py                 # 10 testes das funções de src/
+│   ├── test_funcoes.py                 # 13 testes das funções de src/
 │   └── test_app.py                     # 3 testes do app (AppTest do Streamlit)
 ├── Webapp/                             # API Flask da versão original (mantida para mostrar a evolução)
 ├── .github/workflows/testes.yml        # roda os testes a cada push (GitHub Actions)
@@ -177,13 +180,26 @@ streamlit run app.py
 | **Seleção** | Random Forest **de regressão** + Informação Mútua: área e IPTU no topo; ficar só com as 5 melhores aumenta o erro, então as 12 ficam |
 | **Algoritmos** | Média (referência), Regressão Linear, Lasso, Random Forest, XGBoost, LightGBM e HistGradientBoosting, todos em `Pipeline`, com **validação cruzada** (média ± desvio) |
 | **Escolha** | **HistGradientBoosting**: 1º lugar em todas as métricas e na validação cruzada (R$ 1.308 ± 34) |
-| **Ajuste fino** | `RandomizedSearchCV` com 30 combinações; o erro ficou igual, mas o **sobreajuste caiu** (diferença treino × validação de R$ 293 para R$ 117) |
+| **Ajuste fino** | **Grid Search, Random Search e Bayesiana (Optuna)** comparados nas mesmas 5 partes (tabela abaixo). Empate técnico; o Random Search ficou. O erro mudou pouco, mas o **sobreajuste caiu** (diferença treino × validação de R$ 293 para R$ 117) |
 | **Faixa de erro** | **Relativa** (56% a 157% do previsto), porque o erro em reais cresce com o aluguel. Uma faixa fixa em reais cobriria 99% dos imóveis baratos e só 50% dos caros |
 | **Anti-vazamento** | Com o seguro-incêndio, o erro "cairia" para **R$ 108** (R² 0,99): o modelo só desfaria a conta. Fica de fora |
 
 <div align="center">
 <img src="Imagens/Comparacao dos modelos.png" width="850px">
 </div>
+
+### Ajuste fino: Grid Search x Random Search x Bayesiana
+
+| Método | Como escolhe | MAE (validação cruzada) | Sobreajuste | Custo |
+|---|---|---|---|---|
+| Sem ajuste (padrão) | — | R$ 1.337 ± 34 | R$ 355 | — |
+| **Grid Search** | todas as combinações de uma grade (3 hiperparâmetros) | R$ 1.322 ± 42 | R$ 153 | 135 modelos, 493 s |
+| **Random Search** | 30 combinações sorteadas (5 hiperparâmetros) | R$ 1.318 ± 39 | **R$ 137** | 150 modelos, 437 s |
+| **Bayesiana (Optuna)** | 30 tentativas guiadas pelas anteriores (TPE) | **R$ 1.316 ± 35** | R$ 195 | 150 modelos, **342 s** |
+
+- Os três métodos ficam a **R$ 6** um do outro, bem menos que o desvio entre as partes (~R$ 40): **empate técnico**. Pela regra definida antes da busca (trocar só se o ganho passar do desvio), o **Random Search continua** e o modelo do app não muda.
+- A grade completa com os 5 hiperparâmetros custaria **2.160 modelos (~131 min)** para chegar ao mesmo lugar.
+- O melhor ajuste melhora só **1,6%** sobre o modelo padrão: aqui o limite é a **falta do bairro**, não os hiperparâmetros.
 
 ## 9. Resultado do modelo
 
@@ -210,6 +226,14 @@ streamlit run app.py
 <div align="center">
 <img src="Imagens/Importancia por permutacao.png" width="650px">
 </div>
+
+**Explicando cada previsão com SHAP:** o SHAP reparte cada previsão entre as variáveis, em reais, a partir do aluguel médio previsto (R$ 3.970). A **área** move a previsão em **R$ 1.323** em média, seguida de IPTU (R$ 555), banheiros (R$ 371), condomínio (R$ 361) e mobília (R$ 314). O metro quadrado **vale mais em imóveis de alto padrão** (IPTU alto), e o SHAP mostra por que o modelo errou no pior caso: um imóvel de 193 m² com IPTU baixo, lido como "padrão simples", anunciado pelo triplo do previsto.
+
+<div align="center">
+<img src="Imagens/SHAP beeswarm.png" width="650px">
+</div>
+
+**Monitoramento:** o notebook compara as entradas novas com as do treino (**PSI** e teste **K-S**) e define um **SLA** (MAE de até R$ 1.374). Numa simulação de inflação de 30% no condomínio e no IPTU, o aluguel previsto sobe 8% sem que nada mais mude: é o tipo de mudança que pede retreino.
 
 ## 10. App interativo (Streamlit)
 
@@ -255,6 +279,7 @@ A versão original foi mantida em `Notebooks/` (e a API Flask em `Webapp/`) para
 7. **Cuidado com colunas derivadas do alvo:** com o seguro-incêndio, o modelo teria R² de 0,99 e seria inútil.
 8. **Olhar os valores mais frequentes, não só a média e o máximo:** foi assim que apareceu o teto de R$ 15 mil.
 9. **O modelo explica 65% do preço.** O resto depende do bairro, do acabamento e da conservação, que a base não tem: é uma **referência**, não uma avaliação.
+10. **Ajustar hiperparâmetros rendeu pouco:** Grid, Random e Bayesiana empatam, e o melhor ajuste melhora só 1,6% sobre o padrão. Dados melhores (o bairro) valem mais que mais ajuste.
 
 ## 13. Limites
 

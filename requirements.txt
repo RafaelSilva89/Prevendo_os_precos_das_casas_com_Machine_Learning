@@ -11,3 +11,5 @@ plotly
 streamlit
 jupyter
 pytest
+optuna
+shap

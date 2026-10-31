@@ -1,5 +1,5 @@
 {
-  "data_treino": "2026-10-24 16:26",
+  "data_treino": "2026-10-30 20:56",
   "modelo": "HistGradientBoosting ajustado (Pipeline: one-hot da cidade + HistGradientBoosting)",
   "arquivo": "modelo_aluguel.pkl",
   "treinado_com": "8.257 anúncios (treino + validação) de 5 cidades",
@@ -36,6 +36,7 @@
     "learning_rate": 0.02,
     "l2_regularization": 10
   },
+  "metodo_de_ajuste": "Random Search (menor MAE na validação cruzada de 5 partes do treino)",
   "avisos": [
     "Base de anúncios de 2020: os valores não incluem a inflação dos aluguéis desde então.",
     "Vale só para as 5 cidades da base e para imóveis dentro dos limites das regras de qualidade (src/config.py).",

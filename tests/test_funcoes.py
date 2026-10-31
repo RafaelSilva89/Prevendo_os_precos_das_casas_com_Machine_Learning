@@ -7,6 +7,7 @@ from src.avaliacao import cobertura_faixa, erro_por_grupo, faixa_relativa, ml_er
 from src.config import ARQUIVO_BASE, FEATURES
 from src.dados import carregar_base, faixa_area, imovel_para_modelo, limpar_base, regras_erro
 from src.estatistica import regra_iqr, teste_kruskal, teste_mann_whitney, teste_spearman
+from src.monitoramento import psi, relatorio_drift
 
 IMOVEL = dict(cidade='São Paulo', area=70, quartos=2, banheiros=1, vagas=1, andar=5, aceita_animal=1, mobiliado=0,
               condominio=600, iptu=100)
@@ -92,3 +93,28 @@ def test_testes_estatisticos():
 def test_regra_iqr():
     resultado = regra_iqr(pd.Series([1, 2, 3, 4, 5, 100]))
     assert resultado['outliers'] == 1
+
+
+# --- Monitoramento (data drift) ---
+
+def test_psi_igual_perto_de_zero_e_deslocado_severo():
+    rng = np.random.default_rng(0)
+    referencia = rng.normal(0, 1, 5000)
+    assert psi(referencia, rng.normal(0, 1, 5000)) < 0.02
+    assert psi(referencia, rng.normal(1, 1, 5000)) > 0.25
+
+
+def test_psi_variavel_binaria():
+    assert psi(np.r_[np.zeros(700), np.ones(300)], np.r_[np.zeros(700), np.ones(300)]) < 0.001
+    assert psi(np.r_[np.zeros(700), np.ones(300)], np.r_[np.zeros(300), np.ones(700)]) > 0.25
+
+
+def test_relatorio_drift_aponta_a_coluna_que_mudou():
+    rng = np.random.default_rng(1)
+    referencia = pd.DataFrame({'a': rng.normal(0, 1, 2000), 'b': rng.normal(0, 1, 2000)})
+    novo = pd.DataFrame({'a': rng.normal(0, 1, 2000), 'b': rng.normal(2, 1, 2000)})
+    relatorio = relatorio_drift(referencia, novo, ['a', 'b'])
+    assert relatorio.index[0] == 'b'
+    assert relatorio.loc['b', 'Status (PSI)'] == 'drift severo: retreinar'
+    assert relatorio.loc['a', 'Status (PSI)'] == 'estável'
+    assert bool(relatorio.loc['b', 'K-S indica mudança'])
