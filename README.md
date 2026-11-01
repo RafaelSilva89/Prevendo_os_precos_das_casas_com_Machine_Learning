@@ -131,6 +131,26 @@ jupyter notebook "Notebooks/Prevendo os preços das casas com Machine Learning -
 streamlit run app.py
 ```
 
+### ⏱️ Tempo de execução do notebook
+
+A execução completa leva **cerca de 25 minutos**. Tempo de cada etapa:
+
+| Etapa | Tempo |
+|---|---|
+| Fases 01 e 02: entendimento, limpeza e hipóteses | < 1 min |
+| Fase 03: preparação, seleção de variáveis e comparação dos modelos (validação cruzada) | ~1,5 min |
+| Fase 03: 7.1 Grid Search | 8,2 min |
+| Fase 03: 7.2 Random Search | 7,3 min |
+| Fase 03: 7.3 Otimização Bayesiana (Optuna) | 5,6 min |
+| Fase 03: comparação dos métodos e modelo final | < 1 min |
+| Fase 04: avaliação no teste, permutação e SHAP | 0,9 min |
+| Fase 05: modelo de produção, simulação, monitoramento e app | < 1 min |
+| **Total** | **24,2 min** |
+
+A busca de hiperparâmetros (7.1 a 7.3) é 87% do tempo. Para testar só o resto, dá para reduzir `n_iter` do Random Search e `n_trials` do Optuna.
+
+Medido na execução completa de 30/10/2026, num notebook com Intel Core i3-4005U (2 núcleos, 1,7 GHz) e 8 GB de RAM, com o kernel em Python 3.13. Num computador mais novo o tempo cai bastante, mas a proporção entre as etapas se mantém.
+
 ## 6. Etapas do projeto (CRISP-DM)
 
 | Fase | O que foi feito |
