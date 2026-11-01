@@ -283,10 +283,25 @@ A versão original foi mantida em `Notebooks/` (e a API Flask em `Webapp/`) para
 | 7 | "Erro de 4%" para 717 m² e "erro menor que 0,5%" | Era MAPE de **404%** e de **50%**, num agrupamento por m² exato (1 imóvel por grupo) | Erro traduzido **por cidade e por faixa de área**, com cenários de pior e melhor caso |
 | 8 | Só São Paulo | Descartava 45% da base | **5 cidades**, com a cidade como variável; em SP, MAE de **R$ 1.478** contra R$ 1.553 da v1 |
 | 9 | Sem faixa de erro | O usuário recebia só um número | **Faixa relativa de 80%**, conferida no teste (81,3%) |
-| 10 | `max_features='auto'`, `skopt`, sem `random_state` | Não roda nas versões atuais e não é reproduzível | `Pipeline`, `RandomizedSearchCV`, sementes fixas e validação cruzada |
+| 10 | `max_features='auto'`, `skopt`, sem `random_state` | Não roda nas versões atuais e não é reproduzível | `Pipeline`, sementes fixas e Grid, Random e Bayesiana (Optuna) comparados na validação cruzada |
 | 11 | API Flask com SQL montado por texto e um `.pkl` com nome inexistente | A API não rodava e aceitava injeção de SQL | App Streamlit com validação das entradas e **13 testes** no GitHub Actions |
 | 12 | Hipóteses só com gráficos | Não diferencia efeito real de acaso | **10 hipóteses** com teste estatístico e tamanho do efeito |
 | 13 | Sem registro das decisões | — | `docs/decisoes_analiticas.md`, ficha do modelo em JSON e pasta `reports/` |
+| 14 | Sem explicação das previsões | Não dava para dizer por que um imóvel recebeu aquele valor | **SHAP**: quanto cada variável move o aluguel de cada imóvel |
+| 15 | Sem monitoramento | Não havia como saber quando o modelo deixa de funcionar | **PSI**, **K-S** e SLA do erro, com simulação de inflação |
+
+### 📊 Resultado: v1 × v2
+
+| Métrica (teste) | v1 (Random Forest, só SP) | v2 (só os imóveis de SP) | v2 (5 cidades) | Melhor |
+|---|---|---|---|---|
+| Erro médio (MAE) | R$ 1.553 | R$ 1.478 | **R$ 1.249** | v2 |
+| Erro percentual (MAPE) | 38,2% | **36,4%** | 36,7% | v2 |
+| RMSE | R$ 2.386 | R$ 2.197 | **R$ 1.971** | v2 |
+| R² | 0,536 | 0,606 | **0,653** | v2 |
+| Faixa de erro (80%) | não calculada | — | 56% a 157% do previsto (cobriu **81,3%** no teste) | v2 |
+
+- ⚖️ **A comparação é justa?** Os testes não são idênticos: o da v1 tinha duplicatas e erros de digitação, o da v2 não. A coluna "só os imóveis de SP" é a comparação mais próxima possível. Os números que pareciam melhores na v1 eram ilusões: o "modelo da média" (R² de 0,68) usava o gabarito e o R² de 0,94 dos gráficos era medido no treino.
+- 🏆 **Veredito:** v2. Erro menor também em São Paulo (R$ 1.553 → R$ 1.478), modelo para 5 cidades (R² de 0,65), faixa de erro conferida no teste e uma régua de comparação que não usa a resposta.
 
 ## 12. Insights
 
